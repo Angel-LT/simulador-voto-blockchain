@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Nacional de Voto Blockchain</title>
+    <style>
+        :root {
+            --primary: #D4006A;
+            --dark: #1E1E2F;
+            --light: #F4F5F7;
+            --success: #00B894;
+            --text: #2D3436;
+            --blue: #3498db;
+        }
+        body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; margin: 0; background-color: var(--light); color: var(--text); }
+
+        /* Header Institucional */
+        header { background-color: var(--dark); color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        header h1 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: 1px; }
+        .user-badge { background: rgba(255,255,255,0.1); padding: 8px 15px; border-radius: 20px; font-size: 14px; display: flex; align-items: center; gap: 10px; }
+        .status-dot { height: 10px; width: 10px; background-color: gray; border-radius: 50%; display: inline-block; }
+        .status-dot.active { background-color: var(--success); box-shadow: 0 0 8px var(--success); }
+
+        /* Contenedor Principal */
+        .main-container { max-width: 1000px; margin: 40px auto; display: grid; grid-template-columns: 2fr 1fr; gap: 30px; padding: 0 20px; }
+
+        /* Panel Izquierdo */
+        .voting-booth { background: white; border-radius: 12px; padding: 30px; box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
+        .voting-booth h2 { margin-top: 0; color: var(--primary); border-bottom: 2px solid var(--light); padding-bottom: 10px; }
+
+        /* SECCIÓN DE AUTENTICACIÓN */
+        .auth-section { background: #E8F0FE; padding: 20px; border-radius: 8px; margin-bottom: 20px; text-align: center; border: 1px solid #BBD2F9; }
+        .auth-section input { padding: 10px; font-size: 16px; border-radius: 5px; border: 1px solid #ccc; width: 60%; margin-bottom: 10px; text-transform: uppercase;}
+        .btn-auth { background: var(--dark); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold;}
+        .btn-auth:hover { background: #2c3e50; }
+
+        /* Tarjetas de Candidatos */
+        .candidates-grid { display: none; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+        .candidate-card { border: 2px solid #E2E8F0; border-radius: 10px; padding: 20px; text-align: center; transition: all 0.3s ease; }
+        .candidate-icon { width: 80px; height: 80px; background: var(--light); border-radius: 50%; margin: 0 auto 15px auto; display: flex; align-items: center; justify-content: center; font-size: 30px; color: var(--primary); }
+        .btn-votar { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 6px; width: 100%; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 15px; transition: 0.3s; }
+        .btn-votar:hover { background: #B00058; }
+
+        /* SECCIÓN DE ESTATUS (Si ya votó) */
+        .status-section { display: none; background: #e8f6f3; border: 1px solid #a3e4d7; border-radius: 8px; padding: 20px; margin-top: 20px; text-align: center; }
+        .status-section h3 { color: #117a65; margin-top: 0; }
+        .hash-display { background: #1E1E2F; color: #4ADE80; padding: 15px; border-radius: 5px; font-family: monospace; word-break: break-all; margin: 15px 0; font-size: 18px; letter-spacing: 2px;}
+
+        /* GRÁFICO DE RESULTADOS EN VIVO */
+        .results-section { margin-top: 30px; padding-top: 20px; border-top: 2px dashed #E2E8F0; }
+        .bar-container { margin-bottom: 15px; }
+        .bar-label { display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; margin-bottom: 5px;}
+        .bar-bg { width: 100%; background-color: #E2E8F0; border-radius: 10px; height: 20px; overflow: hidden; }
+        .bar-fill { height: 100%; border-radius: 10px; transition: width 0.5s ease-in-out; }
+
+        /* Panel Lateral */
+        .side-panel { display: flex; flex-direction: column; gap: 20px; }
+        .info-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
+        .info-card h3 { margin-top: 0; font-size: 16px; color: var(--dark); }
+        .node-list { list-style: none; padding: 0; margin: 0; }
+        .node-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--light); font-size: 14px; }
+        .node-online { color: var(--success); font-weight: bold; font-size: 12px; }
+        .terminal { background: #0F172A; color: #4ADE80; font-family: 'Courier New', monospace; font-size: 12px; padding: 15px; border-radius: 8px; height: 180px; overflow-y: auto; }
+        .terminal p { margin: 5px 0; }
+
+        /* Overlay de Éxito */
+        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(30, 30, 47, 0.95); justify-content: center; align-items: center; z-index: 1000; flex-direction: column; color: white; text-align: center; }
+        .check-circle { width: 80px; height: 80px; background: var(--success); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; margin-bottom: 20px; animation: popIn 0.5s ease; }
+        .hash-result { background: rgba(0,0,0,0.4); padding: 20px; border-radius: 8px; font-family: monospace; margin-top: 20px; text-align: left; max-width: 600px; border: 1px solid #334155;}
+
+        @keyframes popIn { 0% { transform: scale(0); } 100% { transform: scale(1); } }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🏛️ Sistema Nacional de Voto Blockchain</h1>
+        <div class="user-badge" id="badge-estado">
+            <span class="status-dot" id="dot-estado"></span>
+            <span id="texto-estado">Esperando Identificación...</span>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <section class="voting-booth">
+            <h2>Elección Federal - Boleta Digital Activa</h2>
+
+            <div class="auth-section" id="auth-box">
+                <p>Ingrese su Identificador Único (Ej. Clave de Elector / CURP)</p>
+                <input type="text" id="input-id" placeholder="Ej. ABCD123456" maxlength="18">
+                <br>
+                <button class="btn-auth" onclick="autenticarCiudadano()">Autenticar en Nodo pBFT</button>
+                <br><br>
+            </div>
+
+            <div id="status-seccion" class="status-section">
+                <h3>✓ Voto Contabilizado Previamente</h3>
+                <p>El sistema detecta que este identificador ya emitió su voto. Por seguridad, no es posible votar dos veces (Prevención de Doble Gasto).</p>
+                <p><strong>Candidato Seleccionado:</strong> <span id="status-candidato" style="font-weight: bold; font-size: 18px;"></span></p>
+                <p><strong>Tu Token/Hash de Auditoría es:</strong></p>
+                <div class="hash-display" id="status-hash"></div>
+                <button class="btn-auth" onclick="location.reload()">Regresar al Inicio</button>
+            </div>
+
+            <div id="seccion-boleta" style="display: none;">
+                <p>Seleccione su candidato. Su voto será encriptado mediante pruebas de conocimiento cero (ZKP).</p>
+
+                <div class="candidates-grid" id="grid-candidatos">
+                    <div class="candidate-card">
+                        <div class="candidate-icon">A</div>
+                        <h3>Partido Alfa</h3>
+                        <button class="btn-votar" id="btn-A" onclick="emitirVoto('Candidato A', 'A')">Firmar Voto</button>
+                    </div>
+                    <div class="candidate-card">
+                        <div class="candidate-icon" style="color: var(--blue);">B</div>
+                        <h3>Partido Beta</h3>
+                        <button class="btn-votar" id="btn-B" style="background: var(--blue);" onclick="emitirVoto('Candidato B', 'B')">Firmar Voto</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="results-section">
+                <h3 style="margin-top:0;">📊 Conteo Oficial (Registros Blockchain)</h3>
+
+                <div class="bar-container">
+                    <div class="bar-label"><span>Partido Alfa</span> <span id="votos-A">0 Votos (0%)</span></div>
+                    <div class="bar-bg">
+                        <div class="bar-fill" id="barra-A" style="width: 0%; background-color: var(--primary);"></div>
+                    </div>
+                </div>
+
+                <div class="bar-container">
+                    <div class="bar-label"><span>Partido Beta</span> <span id="votos-B">0 Votos (0%)</span></div>
+                    <div class="bar-bg">
+                        <div class="bar-fill" id="barra-B" style="width: 0%; background-color: var(--blue);"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="side-panel">
+            <div class="info-card">
+                <h3>Consorcio de Nodos (pBFT)</h3>
+                <ul class="node-list">
+                    <li class="node-item"><span>INE (Validación)</span> <span class="node-online">● ONLINE</span></li>
+                    <li class="node-item"><span>Tribunal Electoral</span> <span class="node-online">● ONLINE</span></li>
+                    <li class="node-item"><span>UNAM (Auditoría)</span> <span class="node-online">● ONLINE</span></li>
+                    <li class="node-item"><span>IPN (Auditoría)</span> <span class="node-online">● ONLINE</span></li>
+                </ul>
+            </div>
+
+            <div class="info-card" style="padding: 0; overflow: hidden;">
+                <div style="padding: 15px; background: #E2E8F0; border-bottom: 1px solid #CBD5E1;">
+                    <h3 style="margin: 0;">Terminal de Red</h3>
+                </div>
+                <div class="terminal" id="terminal">
+                    <p>> [Sistema] Esperando autenticación de ciudadano...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="overlay" id="success-screen">
+        <div class="check-circle">✓</div>
+        <h2>¡Transacción Inmutable Confirmada!</h2>
+        <p>Su voto ha sido contabilizado en la red híbrida.</p>
+
+        <div class="hash-result">
+            <p style="margin-top:0; color: #94A3B8; font-size: 14px;">Identificador Original Ingresado:</p>
+            <span id="id-original" style="color: white; font-weight: bold;"></span>
+
+            <p style="margin-top:20px; color: #94A3B8; font-size: 14px;"><strong>Nuevo Token de Seguridad (Mezclado):</strong><br>
+            <small>Guarde este hash único para auditar su voto en el futuro.</small></p>
+            <span id="id-mezclado" style="font-size: 24px; color: #4ADE80; letter-spacing: 2px;"></span>
+        </div>
+
+        <button style="margin-top: 30px; background: var(--primary); border: none; color: white; font-weight: bold; padding: 12px 24px; border-radius: 5px; cursor: pointer;" onclick="location.reload()">Finalizar Voto</button>
+    </div>
+
+    <script>
+        // RECUPERAR DATOS DE LA "BLOCKCHAIN" LOCAL
+        let votosPartidoA = parseInt(localStorage.getItem('votos_A')) || 0;
+        let votosPartidoB = parseInt(localStorage.getItem('votos_B')) || 0;
+        let identificadorUsuario = "";
+
+        // Función Helper para optimizar las actualizaciones de la terminal (DRY)
+        function logTerminal(mensaje, color = "white") {
+            const terminal = document.getElementById('terminal');
+            terminal.innerHTML += `<p style="color: ${color};">> ${mensaje}</p>`;
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        // Inicialización de la interfaz y eventos de teclado
+        window.onload = function() {
+            actualizarGraficas();
+            configurarComandosTeclado();
+        };
+
+        function configurarComandosTeclado() {
+            document.getElementById('input-id').addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    autenticarCiudadano();
+                }
+            });
+
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    const successScreen = document.getElementById('success-screen');
+                    const statusSection = document.getElementById('status-seccion');
+
+                    if (successScreen.style.display === 'flex' || statusSection.style.display === 'block') {
+                        location.reload();
+                    }
+                }
+            });
+        }
+
+        function limpiarBaseDeDatos() {
+            if(confirm("¿Estás seguro de borrar todos los votos y reiniciar el simulador?")) {
+                localStorage.clear();
+                location.reload();
+            }
+        }
+
+        function autenticarCiudadano() {
+            const input = document.getElementById('input-id').value.trim().toUpperCase();
+            const regexValido = /^[A-Z0-9]{10,18}$/;
+
+            if(!regexValido.test(input)) {
+                alert("Por favor, ingrese un identificador válido (10-18 caracteres alfanuméricos).");
+                return;
+            }
+
+            identificadorUsuario = input;
+            document.getElementById('auth-box').style.display = 'none';
+
+            // REVISAR SI EL USUARIO YA VOTÓ
+            const votoGuardado = localStorage.getItem('voto_' + identificadorUsuario);
+
+            if(votoGuardado) {
+                const datosVoto = JSON.parse(votoGuardado);
+
+                document.getElementById('status-seccion').style.display = 'block';
+                document.getElementById('status-candidato').innerText = datosVoto.candidato;
+                document.getElementById('status-hash').innerText = datosVoto.hash;
+
+                document.getElementById('dot-estado').classList.add('active');
+                document.getElementById('texto-estado').innerText = `ID Consultando: ${identificadorUsuario.substring(0,4)}...`;
+
+                logTerminal(`Alerta: ID ${input} ya se encuentra en el registro.`, "#FBBF24");
+                logTerminal("Desplegando registro de auditoría. Presione ENTER para salir.", "white");
+
+            } else {
+                document.getElementById('seccion-boleta').style.display = 'block';
+                document.getElementById('grid-candidatos').style.display = 'grid';
+
+                document.getElementById('dot-estado').classList.add('active');
+                document.getElementById('texto-estado').innerText = `Autenticado: ${identificadorUsuario.substring(0,4)}... (1 VEMXN)`;
+
+                logTerminal(`Autenticando ID: ${input}...`, "white");
+                logTerminal("[Consorcio] Identidad validada. 1 Token VEMXN asignado.", "white");
+            }
+        }
+
+        function emitirVoto(candidato, partido) {
+            document.getElementById('btn-A').disabled = true;
+            document.getElementById('btn-B').disabled = true;
+
+            logTerminal("Encriptando voto (ZKP)...", "#FBBF24");
+
+            setTimeout(() => {
+                logTerminal("Nodos pBFT validando bloque...", "white");
+            }, 1000);
+
+            setTimeout(() => {
+                if(partido === 'A') {
+                    votosPartidoA++;
+                    localStorage.setItem('votos_A', votosPartidoA);
+                } else if(partido === 'B') {
+                    votosPartidoB++;
+                    localStorage.setItem('votos_B', votosPartidoB);
+                }
+
+                const idMezclado = mezclarCaracteres(identificadorUsuario);
+                const hashFinal = idMezclado + "-" + Math.random().toString(36).substring(2, 8).toUpperCase();
+
+                // INYECCIÓN DE LA FECHA Y HORA ACTUAL PARA LA EXPORTACIÓN CSV
+                const infoVoto = {
+                    candidato: candidato,
+                    hash: hashFinal,
+                    fecha: new Date().toLocaleString('es-MX')
+                };
+                localStorage.setItem('voto_' + identificadorUsuario, JSON.stringify(infoVoto));
+
+                logTerminal("Bloque confirmado. Datos actualizados en el libro mayor.", "#38BDF8");
+
+                actualizarGraficas();
+                mostrarExito(hashFinal);
+            }, 2500);
+        }
+
+        function actualizarGraficas() {
+            const total = votosPartidoA + votosPartidoB;
+            if (total === 0) return;
+
+            const porcentajeA = ((votosPartidoA / total) * 100).toFixed(1);
+            const porcentajeB = ((votosPartidoB / total) * 100).toFixed(1);
+
+            document.getElementById('votos-A').innerText = `${votosPartidoA} Votos (${porcentajeA}%)`;
+            document.getElementById('barra-A').style.width = `${porcentajeA}%`;
+
+            document.getElementById('votos-B').innerText = `${votosPartidoB} Votos (${porcentajeB}%)`;
+            document.getElementById('barra-B').style.width = `${porcentajeB}%`;
+        }
+
+        function mezclarCaracteres(texto) {
+            const array = texto.split('');
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]]; // Intercambio optimizado (Destructuring Assignment)
+            }
+            return array.join('');
+        }
+
+        function mostrarExito(hashGenerado) {
+            document.getElementById('id-original').innerText = identificadorUsuario;
+            document.getElementById('id-mezclado').innerText = hashGenerado;
+            document.getElementById('success-screen').style.display = 'flex';
+
+            logTerminal("Transacción exitosa. Presione ENTER para finalizar.", "white");
+        }
+    </script>
+</body>
+</html>
