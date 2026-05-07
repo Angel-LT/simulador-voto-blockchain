@@ -21,6 +21,7 @@ An interactive electoral vote validation prototype based on a simulated decentra
 
 This project is a **Frontend Simulator** created strictly for UI/UX demonstration and web programming logic purposes. The generated data lives exclusively in the user's local browser. It does not implement real asymmetric cryptography, smart contracts, or a peer-to-peer (P2P) network, and therefore should not be used in production environments.
 
+(Note: Use the token 'admin123' to access the auditor panel during testing).
 
 
 # Simulador de Voto Blockchain (Frontend Prototype)
@@ -45,3 +46,6 @@ Un prototipo interactivo de validación de votos electorales basado en una arqui
 ## ⚠️ Nota Legal / Disclaimer
 
 Este proyecto es un **Simulador Frontend** creado estrictamente con fines de demostración de UI/UX y lógica de programación web. Los datos generados viven exclusivamente en el navegador local del usuario. No implementa criptografía asimétrica real, contratos inteligentes ni una red peer-to-peer (P2P), por lo que no debe utilizarse en entornos de producción.
+
+(Nota: Utiliza el token 'admin123' para acceder al panel de auditoría en las pruebas).
+
